@@ -75,16 +75,16 @@ export const productDescription = defineFlow({
 export const productSpecifications = defineFlow({
   name: 'productSpecifications',
   inputSchema: z.string(),
-  outputSchema: z.string(),
+  outputSchema: z.array(z.string()),
 },
-  async (text) => {
+  async (imageUrl) => {
     const llmResponse = await generate({
       prompt: [
         {
           text: 'Based on this image data attached, generate a product specifications for the item. it should be in bullet points form, informative, and detailed, do not include a title. use numbers for the bullet points. do not include asterisk. do not include the name of the item.'
         },
         {
-          media: { url: text }
+          media: { url: imageUrl }
         }
       ],
       model: gemini15Flash,
@@ -93,7 +93,7 @@ export const productSpecifications = defineFlow({
       },
     });
 
-    return llmResponse.text();
+    return llmResponse.text().split('\n').filter((line) => line.trim() !== '');
   });
 
 export const productPrice = defineFlow({
