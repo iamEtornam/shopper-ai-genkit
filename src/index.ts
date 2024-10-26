@@ -63,16 +63,22 @@ const ProductDescriptionOutputSchema = z.object({
   price: z.number(),
 });
 
-export const productInformation = onFlow(
+export const productInformation = defineFlow(
   {
     name: 'productInformation',
     inputSchema: z.string(),
     outputSchema: ProductDescriptionOutputSchema,
-    authPolicy: firebaseAuth((user:any) => {
-        if (user.uid === null) {
-          throw new Error("User not authenticated");
-        }
-      })
+    middleware: [
+      (req, res, next) => {
+        const token = req.headers['authorization'];
+        // const user = yourVerificationLibrary(token);
+
+        // This is what will get passed to your authPolicy
+        // req.token = token;
+        next();
+      }
+    ],
+  
   },
   async (text) => {
     const llmResponse = await generate({
