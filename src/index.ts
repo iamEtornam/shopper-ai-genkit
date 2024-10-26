@@ -1,15 +1,15 @@
 import * as z from 'zod';
 
-// Import the Genkit core libraries and plugins.
 import { generate } from '@genkit-ai/ai';
 import { configureGenkit } from '@genkit-ai/core';
 import { defineFlow, startFlowsServer } from '@genkit-ai/flow';
 import { googleAI } from '@genkit-ai/googleai';
+import {firebaseAuth} from "@genkit-ai/firebase/auth";
+import {onFlow} from "@genkit-ai/firebase/functions";
 
 // Import models from the Google AI plugin. The Google AI API provides access to
 // several generative models. Here, we import Gemini 1.5 Flash.
 import { gemini15Flash } from '@genkit-ai/googleai';
-import { defineDotprompt } from '@genkit-ai/dotprompt'
 
 configureGenkit({
   plugins: [
@@ -25,35 +25,15 @@ configureGenkit({
   enableTracingAndMetrics: true,
 });
 
-// Define a simple flow that prompts an LLM to generate menu suggestions.
-export const menuSuggestionFlow = defineFlow(
-  {
-    name: 'menuSuggestionFlow',
-    inputSchema: z.string(),
-    outputSchema: z.string(),
-  },
-  async (subject) => {
-		// Construct a request and send it to the model API.
-    const llmResponse = await generate({
-      prompt: `Suggest an item for the menu of a ${subject} themed restaurant`,
-      model: gemini15Flash,
-      config: {
-        temperature: 1,
-      },
-    });
-
-		// Handle the response from the model API. In this sample, we just convert
-    // it to a string, but more complicated flows might coerce the response into
-    // structured output or chain the response into another LLM call, etc.
-    return llmResponse.text();
-  }
-);
-
-
 export const productTitle = defineFlow({
   name: 'productTitle',
   inputSchema: z.string(),
   outputSchema: z.string(),
+  authPolicy: (auth, input) => {
+      if (!auth) {
+        throw new Error('Authorization required.');
+      }
+    }
 }, 
 async (text) => {
 	const llmResponse = await generate({
@@ -77,22 +57,28 @@ async (text) => {
 type ProductDescriptionOutput = z.infer<typeof ProductDescriptionOutputSchema>;
 
 const ProductDescriptionOutputSchema = z.object({
+  title: z.string(),
   description: z.string(),
   specifications: z.string(),
   price: z.number(),
 });
 
-export const productDescription = defineFlow(
+export const productInformation = onFlow(
   {
-    name: 'productDescription',
+    name: 'productInformation',
     inputSchema: z.string(),
     outputSchema: ProductDescriptionOutputSchema,
+    authPolicy: firebaseAuth((user:any) => {
+        if (user.uid === null) {
+          throw new Error("User not authenticated");
+        }
+      })
   },
   async (text) => {
     const llmResponse = await generate({
       prompt: [
         {
-          text: 'Based on this image attached, generate a product description for the item, including specifications and a price. convert the price to Ghana cedi'
+          text: 'Based on this image attached, generate a product title, product description for the item, including specifications and a price. convert the price to Kenyan shillings.'
         },
         {
           media: { url: text }
