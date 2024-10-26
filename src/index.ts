@@ -105,7 +105,7 @@ export const productPrice = defineFlow({
     const llmResponse = await generate({
       prompt: [
         {
-          text: 'Based on this image data attached, generate a product price for the item. do not include currency symbol'
+          text: 'Based on this image data attached, generate a product price for the item. do not include currency symbol and remove all special characters. it should be in Kenyan shillings. and just the amount.'
         },
         {
           media: { url: text }
