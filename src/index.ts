@@ -105,7 +105,7 @@ export const productPrice = defineFlow({
     const llmResponse = await generate({
       prompt: [
         {
-          text: 'Based on this image data attached, generate a product price for the item.'
+          text: 'Based on this image data attached, generate a product price for the item. do not include currency symbol'
         },
         {
           media: { url: text }
