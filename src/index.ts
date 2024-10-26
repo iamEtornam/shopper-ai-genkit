@@ -32,7 +32,7 @@ async (text) => {
 	const llmResponse = await generate({
     prompt: [
       {
-        text:'Based on this image url attached, generate a product title for the item. it should be simple and short.'
+        text:'Based on this image data attached, generate a product title for the item. it should be simple and short.'
       },
       {
         media: { url: text }
@@ -45,7 +45,80 @@ async (text) => {
   });
 
 	return llmResponse.text();
-});
+  });
+
+export const productDescription = defineFlow({
+  name: 'productDescription',
+  inputSchema: z.string(),
+  outputSchema: z.string(),
+},
+  async (text) => {
+    const llmResponse = await generate({
+      prompt: [
+        {
+          text: 'Based on this image data attached, generate a product description for the item. it should be detailed and informative.'
+        },
+        {
+          media: { url: text }
+        }
+      ],
+      model: gemini15Flash,
+      config: {
+        temperature: 1,
+      },
+    });
+
+    return llmResponse.text();
+  });
+
+
+export const productSpecifications = defineFlow({
+  name: 'productSpecifications',
+  inputSchema: z.string(),
+  outputSchema: z.string(),
+},
+  async (text) => {
+    const llmResponse = await generate({
+      prompt: [
+        {
+          text: 'Based on this image data attached, generate a product specifications for the item. it should be in listed form'
+        },
+        {
+          media: { url: text }
+        }
+      ],
+      model: gemini15Flash,
+      config: {
+        temperature: 1,
+      },
+    });
+
+    return llmResponse.text();
+  });
+
+export const productPrice = defineFlow({
+  name: 'productPrice',
+  inputSchema: z.string(),
+  outputSchema: z.string(),
+},
+  async (text) => {
+    const llmResponse = await generate({
+      prompt: [
+        {
+          text: 'Based on this image data attached, generate a product price for the item.'
+        },
+        {
+          media: { url: text }
+        }
+      ],
+      model: gemini15Flash,
+      config: {
+        temperature: 1,
+      },
+    });
+
+    return llmResponse.text();
+  });
 
 type ProductDescriptionOutput = z.infer<typeof ProductDescriptionOutputSchema>;
 
