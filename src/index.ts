@@ -4,8 +4,6 @@ import { generate } from '@genkit-ai/ai';
 import { configureGenkit } from '@genkit-ai/core';
 import { defineFlow, startFlowsServer } from '@genkit-ai/flow';
 import { googleAI } from '@genkit-ai/googleai';
-import {firebaseAuth} from "@genkit-ai/firebase/auth";
-import {onFlow} from "@genkit-ai/firebase/functions";
 
 // Import models from the Google AI plugin. The Google AI API provides access to
 // several generative models. Here, we import Gemini 1.5 Flash.
@@ -29,11 +27,6 @@ export const productTitle = defineFlow({
   name: 'productTitle',
   inputSchema: z.string(),
   outputSchema: z.string(),
-  authPolicy: (auth, input) => {
-      if (!auth) {
-        throw new Error('Authorization required.');
-      }
-    }
 }, 
 async (text) => {
 	const llmResponse = await generate({
@@ -68,17 +61,6 @@ export const productInformation = defineFlow(
     name: 'productInformation',
     inputSchema: z.string(),
     outputSchema: ProductDescriptionOutputSchema,
-    middleware: [
-      (req, res, next) => {
-        const token = req.headers['authorization'];
-        // const user = yourVerificationLibrary(token);
-
-        // This is what will get passed to your authPolicy
-        // req.token = token;
-        next();
-      }
-    ],
-  
   },
   async (text) => {
     const llmResponse = await generate({
