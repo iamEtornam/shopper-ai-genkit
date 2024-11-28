@@ -27,36 +27,12 @@ export const productTitle = defineFlow({
   name: 'productTitle',
   inputSchema: z.string(),
   outputSchema: z.string(),
-}, 
-async (text) => {
-	const llmResponse = await generate({
-    prompt: [
-      {
-        text:'Based on this image data attached, generate a product title for the item. it should be simple and short.'
-      },
-      {
-        media: { url: text }
-      }
-    ],
-    model: gemini15Flash,
-    config: {
-      temperature: 1,
-    },
-  });
-
-	return llmResponse.text();
-  });
-
-export const productDescription = defineFlow({
-  name: 'productDescription',
-  inputSchema: z.string(),
-  outputSchema: z.string(),
 },
   async (text) => {
     const llmResponse = await generate({
       prompt: [
         {
-          text: 'Based on this image data attached, generate a product description for the item. it should be detailed and informative.'
+          text: 'Based on the image data attached, generate a product title for the item. it should be simple and short.'
         },
         {
           media: { url: text }
@@ -70,6 +46,30 @@ export const productDescription = defineFlow({
 
     return llmResponse.text();
   });
+
+  export const productDescription = defineFlow({
+    name: 'productDescription',
+    inputSchema: z.string(),
+    outputSchema: z.string(),
+  },
+    async (text) => {
+      const llmResponse = await generate({
+        prompt: [
+          {
+            text: 'Based on this image data attached, generate a product description for the item. it should be detailed and informative.'
+          },
+          {
+            media: { url: text }
+          }
+        ],
+        model: gemini15Flash,
+        config: {
+          temperature: 1,
+        },
+      });
+  
+      return llmResponse.text();
+    });
 
 
 export const productSpecifications = defineFlow({
@@ -96,29 +96,6 @@ export const productSpecifications = defineFlow({
     return llmResponse.text().split('\n').filter((line) => line.trim() !== '');
   });
 
-export const productPrice = defineFlow({
-  name: 'productPrice',
-  inputSchema: z.string(),
-  outputSchema: z.string(),
-},
-  async (text) => {
-    const llmResponse = await generate({
-      prompt: [
-        {
-          text: 'Based on this image data attached, generate a product price for the item. do not include currency symbol and remove all special characters. it should be in Kenyan shillings. and just the amount.'
-        },
-        {
-          media: { url: text }
-        }
-      ],
-      model: gemini15Flash,
-      config: {
-        temperature: 1,
-      },
-    });
-
-    return llmResponse.text();
-  });
 
 type ProductDescriptionOutput = z.infer<typeof ProductDescriptionOutputSchema>;
 
@@ -135,12 +112,14 @@ export const productInformation = defineFlow(
     inputSchema: z.string(),
     outputSchema: ProductDescriptionOutputSchema,
   },
+  
   async (text) => {
     const llmResponse = await generate({
       prompt: [
         {
-          text: 'Based on this image attached, generate a product title, product description for the item, including specifications and a price. convert the price to Kenyan shillings.'
+          text: 'Based on this image attached, generate a product title, product description for the item, including specifications and a price. convert the price to Ugandan shillings. Do not include specification for non gadgets'
         },
+  
         {
           media: { url: text }
         }
@@ -149,11 +128,14 @@ export const productInformation = defineFlow(
       config: {
         temperature: 1,
       },
+      output:{
+        schema: ProductDescriptionOutputSchema
+      }
     });
 
-    return llmResponse.text() as unknown as ProductDescriptionOutput;
+    return llmResponse.output() as any;
   });
-      
+
 
 
 // Start a flow server, which exposes your flows as HTTP endpoints. This call
