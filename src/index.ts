@@ -1,35 +1,25 @@
-import * as z from 'zod';
+import { googleAI } from '@genkit-ai/google-genai';
+import { genkit, z } from 'genkit';
 
-import { generate } from '@genkit-ai/ai';
-import { configureGenkit } from '@genkit-ai/core';
-import { defineFlow, startFlowsServer } from '@genkit-ai/flow';
-import { googleAI } from '@genkit-ai/googleai';
-
-// Import models from the Google AI plugin. The Google AI API provides access to
-// several generative models. Here, we import Gemini 1.5 Flash.
-import { gemini15Flash } from '@genkit-ai/googleai';
-
-configureGenkit({
-  plugins: [
-    // Load the Google AI plugin. You can optionally specify your API key
-    // by passing in a config object; if you don't, the Google AI plugin uses
-    // the value from the GOOGLE_GENAI_API_KEY environment variable, which is
-    // the recommended practice.
-    googleAI(),
-  ],
-  // Log debug output to tbe console.
-  logLevel: 'debug',
-  // Perform OpenTelemetry instrumentation and enable trace collection.
-  enableTracingAndMetrics: true,
+const ai = genkit({
+  plugins: [googleAI()],
+  model: googleAI.model('gemini-2.5-flash', {
+    temperature: 0.8,
+  }),
 });
 
-export const productTitle = defineFlow({
+
+export const productTitle = ai.defineFlow({
   name: 'productTitle',
-  inputSchema: z.string(),
-  outputSchema: z.string(),
+  inputSchema: z.string().describe('Image URL of the product'),
+  outputSchema: z.string()
 },
-  async (text) => {
-    const llmResponse = await generate({
+  async (text: string) => {
+    if (!text || text.trim() === '') {
+      throw new Error('Image URL is required');
+    }
+
+    const llmResponse = await ai.generate({
       prompt: [
         {
           text: 'Based on the image data attached, generate a product title for the item. it should be simple and short.'
@@ -38,47 +28,53 @@ export const productTitle = defineFlow({
           media: { url: text }
         }
       ],
-      model: gemini15Flash,
       config: {
         temperature: 1,
       },
     });
 
-    return llmResponse.text();
+    return llmResponse.text;
   });
 
-  export const productDescription = defineFlow({
-    name: 'productDescription',
-    inputSchema: z.string(),
-    outputSchema: z.string(),
-  },
-    async (text) => {
-      const llmResponse = await generate({
-        prompt: [
-          {
-            text: 'Based on this image data attached, generate a product description for the item. it should be detailed and informative.'
-          },
-          {
-            media: { url: text }
-          }
-        ],
-        model: gemini15Flash,
-        config: {
-          temperature: 1,
+export const productDescription = ai.defineFlow({
+  name: 'productDescription',
+  inputSchema: z.string().describe('Image URL of the product'),
+  outputSchema: z.string(),
+},
+  async (text: string) => {
+    if (!text || text.trim() === '') {
+      throw new Error('Image URL is required');
+    }
+
+    const llmResponse = await ai.generate({
+      prompt: [
+        {
+          text: 'Based on this image data attached, generate a product description for the item. it should be detailed and informative.'
         },
-      });
-  
-      return llmResponse.text();
+        {
+          media: { url: text }
+        }
+      ],
+      config: {
+        temperature: 1,
+      },
     });
 
+    return llmResponse.text;
+  });
 
-export const productSpecifications = defineFlow({
+
+export const productSpecifications = ai.defineFlow({
   name: 'productSpecifications',
-  inputSchema: z.string(),
+  inputSchema: z.string().describe('Image URL of the product'),
   outputSchema: z.array(z.string()),
 },
-  async (imageUrl) => {
-    const llmResponse = await generate({
+  async (imageUrl: string) => {
+    if (!imageUrl || imageUrl.trim() === '') {
+      throw new Error('Image URL is required');
+    }
+
+    const llmResponse = await ai.generate({
       prompt: [
         {
           text: 'Based on this image data attached, generate a product specifications for the item. it should be in bullet points form, informative, and detailed, do not include a title. use numbers for the bullet points. do not include asterisk. do not include the name of the item.'
@@ -87,13 +83,12 @@ export const productSpecifications = defineFlow({
           media: { url: imageUrl }
         }
       ],
-      model: gemini15Flash,
       config: {
         temperature: 1,
       },
     });
 
-    return llmResponse.text().split('\n').filter((line) => line.trim() !== '');
+    return llmResponse.text.split('\n').filter((line: string) => line.trim() !== '');
   });
 
 
@@ -106,40 +101,35 @@ const ProductDescriptionOutputSchema = z.object({
   price: z.number(),
 });
 
-export const productInformation = defineFlow(
+export const productInformation = ai.defineFlow(
   {
     name: 'productInformation',
-    inputSchema: z.string(),
+    inputSchema: z.string().describe('Image URL of the product'),
     outputSchema: ProductDescriptionOutputSchema,
   },
-  
-  async (text) => {
-    const llmResponse = await generate({
+
+  async (text: string) => {
+    if (!text || text.trim() === '') {
+      throw new Error('Image URL is required');
+    }
+
+    const { output } = await ai.generate({
       prompt: [
         {
           text: 'Based on this image attached, generate a product title, product description for the item, including specifications and a price. convert the price to Ugandan shillings. Do not include specification for non gadgets'
         },
-  
+
         {
           media: { url: text }
         }
       ],
-      model: gemini15Flash,
       config: {
         temperature: 1,
       },
-      output:{
+      output: {
         schema: ProductDescriptionOutputSchema
       }
     });
 
-    return llmResponse.output() as any;
+    return output as any;
   });
-
-
-
-// Start a flow server, which exposes your flows as HTTP endpoints. This call
-// must come last, after all of your plug-in configuration and flow definitions.
-// You can optionally specify a subset of flows to serve, and configure some
-// HTTP server options, but by default, the flow server serves all defined flows.
-startFlowsServer();
