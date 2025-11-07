@@ -1,5 +1,6 @@
 import { googleAI } from '@genkit-ai/google-genai';
 import { genkit, z } from 'genkit';
+import { startFlowServer } from '@genkit-ai/express';
 
 const ai = genkit({
   plugins: [googleAI()],
@@ -133,3 +134,9 @@ export const productInformation = ai.defineFlow(
 
     return output as any;
   });
+
+// Start a flow server, which exposes your flows as HTTP endpoints.
+// This keeps the application running and makes the flows accessible via HTTP.
+startFlowServer({
+  flows: [productInformation, productTitle, productDescription, productSpecifications],
+});
